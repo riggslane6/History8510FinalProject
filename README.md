@@ -5,4 +5,4 @@ While I have learned how to code **somewhat**, there are likely to be mistakes a
 
 Because I am interested in the border, this project will look at a border dataset of my choosing. 
 
-**Thanks for a __great__ semester, Dr. R!**
+**Thanks for a _great_ semester, Dr. R!**
