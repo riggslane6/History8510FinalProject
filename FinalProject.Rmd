@@ -1,55 +1,93 @@
 ---
-title: "Final Project"
+title: "Unrepresenting Migrant Deaths"
 author: "Lane Riggs"
 date: "2023-04-15"
 output: "html_document"
 ---
 
-_This is the final project for the HIST 8510 course. In this final project, I will be looking at data about migrant deaths at the border. U.S. Customs and Border Protection agents have significantly underrecorded immigrant deaths, with numbers likely twice as high as previously reported._ 
+_This is the final project for the HIST 8510 course._
 
-_The Government Accountability Office (GAO) stated "CBP has not collected and recorded, or reported to Congress, complete data on migrant deaths or disclosed limitations with the data it has reported."_
+In this final project, I will be looking at data about migrant deaths at the border. This dataset was created by the official U.S. Customs and Border Protection government page, and was posted publicly. This dataset looks at deaths along the U.S./Mexico border per year since 1998, until 2020.
 
-_Since 1998, the Border Patrol has recorded approximately 8,600 immigrant deaths at the border. If this data is correct, the actual number of immigrant deaths might have been twice as high since 1998._ 
+Within this dataset created by the U.S. Customs and Border Protection, there are variables for specific sections along the border, such as Laredo, Del Rio, and Tucson, among others. The dataset includes numbers for each section for each year until 2020, and it also includes total numbers. While I did look for datasets that are more up to date, even the U.S. Customs and Border Protection data was a little older. This could be something to look into further.
+
+As someone interested in border studies, I chose this dataset because I was interested in seeing how many migrants die at the border each year. The journey is often perilous, and Border Patrol agents do not make the journey any easier.
 
 ```{r}
-
 #first we are going to load the dataset and then rename it 
 
-tucson.numbers <- data.9B69e
+deaths.at.border <- Border_Data
 
-#I found this dataset from an article posted to Forbes in 2022. 
+```
 
+>Let's load some packages that we may need to help visualize this data.
+
+```{r}
+library(maps)
+library(mapproj)
+library(tidyverse)
 ```
 
 ```{r}
 
-#we will first graph the underrepresented deaths at the border
+#we will first graph the total deaths at the border per year since 1998
 
-#colors are chosen to represent the Border Patrol colors
+#colors are chosen to represent colors featured on Border Patrol uniforms
 
-tucson.numbers.df <- data.frame(reported = c(63, 84, 73, 58, 61), not.reported = c(86, 66, 71, 65, 72))
-
-barplot(tucson.numbers.df$not.reported,
-        tucson.numbers.df$reported,
-        main = "Actual Deaths at the Border",
-        xlab = "Deaths",
-        col = c("green", "blue")
+barplot(deaths.at.border$Total,
+        main = "Deaths at the Border",
+        xlab = "From 1998-2020",
+        col = c("darkgreen", "navyblue")
         )
 
-legend("topleft",
-       c("Reported", "Not Reported"),
-       fill = c("green", "blue")
-       )
-
+#a relatively simple graph, so let's move on to other configurations of the data
 ```
->
 
+We can visualize this data by looking at how likely migrants are going to pass away in a particular section of the border. This can show border studies researchers where migrants are in most need of humanitarian aid due to the geographic landscape, Border Patrol agents, coyotes, or a combination of all of the above.
 
+From the above dataset, the Rio Grande Valley (RGV) and Tucson are the deadliest two sections of along the border. The number of migrant deaths per year at these two locations is sometimes twice as high as the number of migrant deaths in other locations.
 
 ```{r}
 
+#I chose to look at the years 2012 through 2017 because these were some of the deadliest years. 
 
+#I would have to look at what the White House was saying about the border during this time to see if there was an increase in border crossings.
 
-````
+df <- data_frame(Deaths = factor(c("2012", "2013", "2014", "2015", "2016", "2017")),
+                 RGV = factor(c(144, 156, 116, 97, 132, 104)),
+                 Tucson = factor(c(180, 194, 107, 63, 84, 73)))
+
+pivot_longer(df, cols = -Deaths) %>%
+   ggplot() + aes(x = Deaths, y = as.numeric(as.character(value)), fill = name) +
+   geom_bar(stat = "identity", width = 0.4, position = "dodge", color = "darkgreen") 
+```
+
+Why are the Rio Grande Valley and Tucson so dangerous? Why are these two sections of the border extremely deadly during this five-year timeframe?
+
+For one, the Tucson Border Patrol agents are among the deadliest in terms of use-of-force [[^fn1]]. The Arizona Daily Star reported that the Tucson Sector has had far more use-of-force incidents involving a firearm since the beginning of fiscal year 2020 , at 11 incidents. The next highest is the El Paso Sector, with seven. 
+
+The CBP has stated that deadly force is authorize "anytime there's a reasonable belief a subject poses an immiment danger of death or serious physical injury to the agent or another person" [[^fn2]]. 
+
+The U.S. Supreme Court ruled in Graham v. Conner (1989) that an officer will be "judged by what's considered reasonable force at the moment force is applied, not from hindsight" [[^fn3]]. 
+
+Tucson and the Rio Grande Valley may have more cases of deadly assault because migrants crossing the border have posed more harm to Border Patrol agents. 
+
+However, the San Diego Union-Tribune reported that CBP officers and Border Patrol agents used force 973 times in the fiscal year 2022 [[^fn4]]. 
+
+University of California, Irvine sociologist Irene Vega analyzed this statistic: "A sense of exceptionalism pervades the organization. [Internal messaging] foster[s] a combination of vulnerability and power among agents, who come to understand their work as disproportionately dangerous and see their use of force as largely justifiable" [[^fn6]].
+
+Another visualization we can utilize is a map of the United States to better see how many deaths have happened in each Border Patrol sector on a physical map.
+
+```{r}
+states <- map_data("state")
+
+force.types <- Use_of_Force_by_Type
+
+force.frequency <- merge(force.frequency, force.types, sort = FALSE)
+
+ggplot(force.frequency, aes(long, lat)) +
+  geom_polygon(aes(group = group)) +
+  coord_map()
+```
 
 
