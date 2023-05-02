@@ -1,93 +1,254 @@
 ---
-title: "Unrepresenting Migrant Deaths"
+title: "Analyzing Decades of Migrant Deaths"
 author: "Lane Riggs"
-date: "2023-04-15"
+date: "2023-05-01"
 output: "html_document"
 ---
+In this final project, I will be looking at data about migrant deaths at the border to determine which areas of the border are most dangerous: either due to violence at the hands of Border Patrol agents, the treacherous terrain, predatory coyotes, the onset of medical conditions such as heat stroke or hypothermia, or any combination of the above. 
 
-_This is the final project for the HIST 8510 course._
+The dataset within this paper was created by the official U.S. Customs and Border Protection (CBP) government website, and was posted publicly. This particular dataset looks at deaths along the U.S./Mexico border per year from 1998 until 2020.
 
-In this final project, I will be looking at data about migrant deaths at the border. This dataset was created by the official U.S. Customs and Border Protection government page, and was posted publicly. This dataset looks at deaths along the U.S./Mexico border per year since 1998, until 2020.
+Within this dataset created by CBP, there are variables for specific sections along the border, such as Laredo, Del Rio, and Tucson, among others. The dataset includes numbers for each section for each year until 2020, and it also includes total numbers per year.
 
-Within this dataset created by the U.S. Customs and Border Protection, there are variables for specific sections along the border, such as Laredo, Del Rio, and Tucson, among others. The dataset includes numbers for each section for each year until 2020, and it also includes total numbers. While I did look for datasets that are more up to date, even the U.S. Customs and Border Protection data was a little older. This could be something to look into further.
+As someone interested in border studies, I chose this dataset because I was interested in seeing why many migrants die at the border each year. Therefore, I turned to this dataset to see if the data would show which sectors and areas are most dangerous. 
 
-As someone interested in border studies, I chose this dataset because I was interested in seeing how many migrants die at the border each year. The journey is often perilous, and Border Patrol agents do not make the journey any easier.
+Crossing the border is often perilous, and Border Patrol agents do not make the journey any easier. The Washington Post reported in 2017 that many migrants and deportees who make repeated attempts to cross the border are giving up since crossing the border has become so difficult [^1].
 
-```{r}
-#first we are going to load the dataset and then rename it 
+```{r include=FALSE}
+#Let us load some packages that we may need to help visualize this data.
 
-deaths.at.border <- Border_Data
-
-```
-
->Let's load some packages that we may need to help visualize this data.
-
-```{r}
 library(maps)
 library(mapproj)
 library(tidyverse)
+library(usmap)
+```
+
+```{r include=FALSE}
+library(dplyr, warn.conflicts = FALSE)
+library(tidygeocoder)
+library(ggfortify)
+library(ggplot2)
+library(tsibble)
+```
+
+```{r echo=TRUE}
+#first we are going to look at major border patrol sectors within the U.S. 
+
+usmap::plot_usmap(include = c("CA", "AZ", "NM", "TX"), labels = TRUE) +
+  labs(title = "States with Major Border Patrol Sectors") +
+  theme(panel.background = element_rect(color = "darkgreen"))
+
+```
+
+```{r}
+#now we will load the data and then add numbers per each year
+
+D <- c(263, 249,380, 340, 320, 338, 328, 492, 454, 398, 385, 420, 365, 375, 471, 451, 315, 251, 329, 298, 281, 300, 247)
+Y <- c("1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020")
+
 ```
 
 ```{r}
 
-#we will first graph the total deaths at the border per year since 1998
+#next we will graph the total deaths at the border per year since 1998
 
-#colors are chosen to represent colors featured on Border Patrol uniforms
+#colors are chosen to represent colors featured on Border Patrol uniforms; there is no difference between the green and the blue bars
 
-barplot(deaths.at.border$Total,
-        main = "Deaths at the Border",
-        xlab = "From 1998-2020",
-        col = c("darkgreen", "navyblue")
-        )
+barplot(D, names.arg=Y, xlab="Years", ylab ="Total", col = c("darkgreen", "navyblue"), main="Deaths at the Border", border= "gold")
+
 
 #a relatively simple graph, so let's move on to other configurations of the data
 ```
 
-We can visualize this data by looking at how likely migrants are going to pass away in a particular section of the border. This can show border studies researchers where migrants are in most need of humanitarian aid due to the geographic landscape, Border Patrol agents, coyotes, or a combination of all of the above.
+After analyzing the data above, it is clear that more migrants are likely to cross in specific sections of the border. From the above dataset, the Rio Grande Valley (RGV), Texas, and Tucson, Arizona, are two of the busiest *and* deadliest two sections along the border. The number of migrant deaths per year at these two locations is sometimes twice as high as the number of migrant deaths in other locations.
 
-From the above dataset, the Rio Grande Valley (RGV) and Tucson are the deadliest two sections of along the border. The number of migrant deaths per year at these two locations is sometimes twice as high as the number of migrant deaths in other locations.
+The CBP website states that the Tucson Sector covers a total of 262 border miles. The website reports that the Tucson sector is "one of the busiest sectors in the country in both illegal alien apprehensions and marijuana seizures" [^2].
+
+In contrast, the RGV sector covers more than 34,000 square miles, or 250 coastal miles, of Southeast Texas. This sector has nine stations along the border, with two stations that staff strategically placed checkpoints.
 
 ```{r}
 
-#I chose to look at the years 2012 through 2017 because these were some of the deadliest years. 
+#I chose to look at the years 2012 through 2017 because these were some of the deadliest years within the original dataset. 
 
 #I would have to look at what the White House was saying about the border during this time to see if there was an increase in border crossings.
 
-df <- data_frame(Deaths = factor(c("2012", "2013", "2014", "2015", "2016", "2017")),
+df <- data_frame(Years = factor(c("2012", "2013", "2014", "2015", "2016", "2017")),
                  RGV = factor(c(144, 156, 116, 97, 132, 104)),
                  Tucson = factor(c(180, 194, 107, 63, 84, 73)))
 
-pivot_longer(df, cols = -Deaths) %>%
-   ggplot() + aes(x = Deaths, y = as.numeric(as.character(value)), fill = name) +
+pivot_longer(df, cols = -Years) %>%
+   ggplot() + aes(x = Years, y = as.numeric(as.character(value)), fill = name) +
    geom_bar(stat = "identity", width = 0.4, position = "dodge", color = "darkgreen") 
+
 ```
 
 Why are the Rio Grande Valley and Tucson so dangerous? Why are these two sections of the border extremely deadly during this five-year timeframe?
 
-For one, the Tucson Border Patrol agents are among the deadliest in terms of use-of-force [[^fn1]]. The Arizona Daily Star reported that the Tucson Sector has had far more use-of-force incidents involving a firearm since the beginning of fiscal year 2020 , at 11 incidents. The next highest is the El Paso Sector, with seven. 
+Tucson agents have to patrol the 262-mile stretch from Douglas to Nogales. Many Border Patrol agents report being overwhelmed since this is a very long stretch of the border.
 
-The CBP has stated that deadly force is authorize "anytime there's a reasonable belief a subject poses an immiment danger of death or serious physical injury to the agent or another person" [[^fn2]]. 
+In the fiscal year 2021, Tucson recorded 120,509 arrests, a steep increase from the preceding four years [^3]. According to Tucson Weekly, in early 2022, "arrests are up 73 percent over that" [^4]. 
 
-The U.S. Supreme Court ruled in Graham v. Conner (1989) that an officer will be "judged by what's considered reasonable force at the moment force is applied, not from hindsight" [[^fn3]]. 
-
-Tucson and the Rio Grande Valley may have more cases of deadly assault because migrants crossing the border have posed more harm to Border Patrol agents. 
-
-However, the San Diego Union-Tribune reported that CBP officers and Border Patrol agents used force 973 times in the fiscal year 2022 [[^fn4]]. 
-
-University of California, Irvine sociologist Irene Vega analyzed this statistic: "A sense of exceptionalism pervades the organization. [Internal messaging] foster[s] a combination of vulnerability and power among agents, who come to understand their work as disproportionately dangerous and see their use of force as largely justifiable" [[^fn6]].
-
-Another visualization we can utilize is a map of the United States to better see how many deaths have happened in each Border Patrol sector on a physical map.
+John Modlin, Chief Patrol Agent for the Tucson Sector, said early this year that apprehensions at the border have dramatically increased: "In 2020, our total encounters were 66,000. That figure nearly tripled in 2021, and then quadrupled last year. We closed last year, 2022, with over 250,000 encounters in Tucson, Arizona. **That is a 257% increase in just two years**" [^5].
 
 ```{r}
-states <- map_data("state")
+#mapping the nine sectors throughout Arizona
 
-force.types <- Use_of_Force_by_Type
+tucson <- map_data("usa")
 
-force.frequency <- merge(force.frequency, force.types, sort = FALSE)
-
-ggplot(force.frequency, aes(long, lat)) +
-  geom_polygon(aes(group = group)) +
-  coord_map()
+tucson.sectors <- c("Why", "Casa Grande", "Tucson", "Nogales", "Willcox", "Sonoita", "Bisbee", "Douglas", "Three Points")
 ```
 
+```{r}
+#geocoding addresses for each Border Patrol sector in Arizona
 
+sectors.addresses <- tibble::tribble(
+  ~name,                        ~addr,
+  "Why",                        "850 AZ-85, Ajo, AZ 85321",
+  "Casa Grande", "396 N Camino Mercado, Casa Grande, AZ 85122",
+  "Tucson",                "2430 S Swan Rd, Tucson, AZ 85711",
+  "Nogales",         "1500 W La Quinta Rd, Nogales, AZ 85621",
+  "Willcox",        "200 S Rex Allen Jr Dr, Willcox, AZ 85643",
+  "Sonoita",                 "3225 AZ-82, Sonoita, AZ 85637",
+  "Bisbee",               "2136 S Naco Hwy, Bisbee, AZ 85603",
+  "Douglas",         "1051 E Lawrence Ave, Douglas, AZ 85607",
+  "Three Points",     "16435 W Ajo Hwy, Tucson, AZ 85735"
+  )
+
+lat.longs <- sectors.addresses %>%
+  geocode(addr, method = 'osm', lat = latitude, long = longitude)
+
+options(ggrepel.max.overlaps = Inf)
+
+ggplot(lat.longs, aes(longitude, latitude), color = "grey99") + 
+  borders("state") + geom_point() +
+  ggrepel::geom_label_repel(aes(label = name)) + 
+  theme_void()
+
+```
+
+Again, why are there so many deaths at the border in Tucson? To explain, the Tucson Border Patrol agents are among the deadliest in terms of use-of-force [^6]. 
+
+The Arizona Daily Star reported that the Tucson Sector has had far more use-of-force incidents involving a firearm since the beginning of fiscal year 2020, at 117 incidents. The next highest is the El Paso Sector, with 89. 
+
+The CBP has stated that deadly force is authorized "anytime there's a reasonable belief a subject poses an imminent danger of death or serious physical injury to the agent or another person" [^7]. 
+
+The U.S. Supreme Court ruled in Graham v. Conner (1989) that an officer will be "judged by what's considered reasonable force at the moment force is applied, not from hindsight" [^8]. 
+
+```{r}
+
+#we are only looking at Tucson within this dataframe
+
+deaths.freq <- tsibble(Year = 2012:2017,
+                       Observation = c(180, 194, 107, 63, 84, 73), 
+                       index = Year)
+
+#we can let autoplot automatically plot these particular years for us 
+
+autoplot(as.ts(deaths.freq)) +
+  labs(main = "Deaths in Tucson", title = "Deaths in Tucson Over a Five Year Period") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+Since the latest year in this dataset is 2020, this may not be the most comprehensive dataset. Researchers attempting to draw conclusions about the border must be aware of this fact. Regardless, use-of-force seems to be on the rise along with border crossings. 
+
+The San Diego Union-Tribune reported in 2022 that CBP officers and Border Patrol agents used force 973 times in the 2022 fiscal year alone [^9]. 
+
+A University of California, Irvine sociologist, Irene Vega, analyzed this statistic: "A sense of exceptionalism pervades the organization. [Internal messaging] foster[s] a combination of vulnerability and power among agents, who come to understand their work as disproportionately dangerous and see their use of force as largely justifiable" [^10].
+
+```{r}
+
+#have deaths at each sector of the border also been on the rise?
+
+deaths <- tsibble(Year = 1998:2020,
+                  Observation = c(263, 249, 380, 340, 320, 338,
+                                  328, 492, 454, 398, 385, 420,
+                                  365, 375, 471, 451, 315, 251,
+                                  329, 298, 281, 300, 247),
+                  index = Year)
+
+autoplot(as.ts(deaths))
+
+#this data shows there were less deaths at the border in 2020, but border crossings were extremely low in 2020
+
+```
+
+This visualization shows that there were less deaths at the border from 2015 and 2020 as compared to 2000, 2005, and 2011 or 2012. However, this dataset is a little old. It is possible that, because of the steep increase in border crossings, many more migrants have died at the border in 2021, 2022, and 2023. 
+
+Returning to the data, how do the Arizona Border Patrol sectors compare to other sectors? How much more deadly are the Arizona Border Patrol compared to other Border Patrol sectors? How many more migrants die in Arizona than in other states? 
+
+```{r}
+
+#creating a pie chart to see how sectors compare to each other
+
+percentages <- c(75, 598, 689, 274, 1133, 1666, 394, 2888, 335)
+
+lbls <- c("Big Bend", "Del Rio", "El Centro", "El Paso", "Laredo", "Rio Grande Valley", "San Diego", "Tucson", "Yuma")
+
+#graphing the pie chart
+
+pct <- round(percentages/sum(percentages) * 100)
+
+lbls <- paste(lbls, pct)
+lbls <- paste(lbls, "%", sep = "")
+
+pie(percentages, labels = lbls, col =c("steelblue4", "steelblue", "steelblue3", "steelblue2", "steelblue1", "skyblue1"),
+    main = "Percentages of Deaths Per Major Border Patrol Sector")
+
+```
+
+The Tucson Sector is conclusively the most dangerous stretch along the border. When researching Tucson, numerous headlines proclaiming "migrant shot", "migrant dies", "video of migrant's death released" appear. In one article by the Arizona Daily Star, Danyelle Khmara reports that a migrant died in Border Patrol custody after being apprehended. 
+
+Though the migrant only had a hurt ankle, Border Patrol released a statement saying the migrant "acted in a combative and agitated manner before his death" [^11]. Border Patrol agents said the man was acting erratic due to the ingestion of drugs. 
+Yet this story is not isolated. 
+
+Neither are the stories about Arizona Border Patrol agents sentenced for drugs or bribery. 
+
+Nevertheless, Tucson is a particularly volatile section of the border. 
+
+Policymakers can study this dataset to determine which sectors need more security, more (*or better*) policies, and more accountability. It is imperative the government holds Border Patrol accountable, especially since Border Patrol agents no longer investigate themselves [^12].
+
+This dataset is by no means comprehensive, but it can be utilized alongside more up-to-date datasets. Similarly, this dataset does not reveal much about the actors behind migrant deaths at the border (i.e., Border Patrol agents or coyotes). However, it does reveal that many migrants have been dying at the border since 1998, and that migrants are much more likely to perish at the RGV and Tucson sectors, due to any number of factors.
+
+Both the RGV and Tucson Chief Patrol Agent have put it simply. The border needs reform. Migration laws, such as Title 42, and efforts to secure the border need to change, if only because these laws and the futile desire to secure the border have clearly led to a manufactured, indefinitely-long humanitarian crisis at the border.
+
+---
+
+Bibliography
+
+Aguilera, Jasmine. "Border Patrol Agents Will No Longer Be Able to Investigate Themselves." TIME, May 6, 2022. https://time.com/6174485/border-patrol-accountability/.
+
+Banks, Leo. "Bordering on Chaos: The Number of Illegal Crossers is Reaching an All-Time High." Tucson Weekly. Times Media Group, January 20, 2022. https://www.tucsonweekly.com/tucson/bordering-on-chaos-the-number-of-illegal-border-crossers-is-reaching-an-all-time-high/Content?oid=31851677. 
+
+Committee on Oversight and Accountability. "Border Patrol Chiefs: Biden's Border Crisis is 'Overwhelming.'" February 7, 2023. https://oversight.house.gov/release/border-patrol-chiefs-bidens-border-crisis-is-overwhelming/.
+
+Miroff, Nick. “Border Security Is Tougher than Ever, DHS
+Report Finds.” The Washington Post. WP Company, September 18, 2017. https://www.washingtonpost.com/world/national-security/border-security-is-tougher-than-ever-dhs-report-finds/2017/09/18/5d198328-9a46-11e7-a527-3573bd073e02_story.html. 
+
+Khmara, Danyelle. "Migrant dies in Border Patrol custody in Southern Arizona." Arizona Daily Star. Lee Enterprises, April 14, 2023. https://tucson.com/news/local/border/migrant-dies-in-border-patrol-custody-in-southern-arizona/article_1dcb3a1c-b864-11ed-8bba-e30f6a8b3078.html.
+
+Khmara, Danyelle. "Tucson Border Patrol use of force still highest in nation." Arizona Daily Star. Lee Enterprises, April 21, 2023. https://tucson.com/news/local/tucson-border-patrol-use-of-force-still-highest-in-nation/article_2c6d5588-abde-11ed-a9bb-9f932ebe3e1f.html.
+
+Koscak, Paul. "Law Enforcement on a Constitutional Scale." U.S. Customs and Border Protection, January 4, 2022. https://www.cbp.gov/frontline/cbp-use-force.
+
+Riggins, Alex. "The Department of Homeland Security - the parent agency for border, immigration and other law enforcement agencies - updated its policies as required by a Biden executive order." The San Diego Union-Tribune, February 19, 2023. https://www.sandiegouniontribune.com/news/public-safety/story/2023-02-19/dhs-new-use-of-force-policy.
+
+U.S. Customs and Border Protection. Rio Grande Valley Sector Texas. July 22, 2022. https://www.cbp.gov/border-security/along-us-borders/border-patrol-sectors/rio-grande-valley-sector-texas.
+
+U.S. Customs and Border Protection. Tucson Sector Arizona. July 22, 2022. https://www.cbp.gov/border-security/along-us-borders/border-patrol-sectors/tucson-sector-arizona.
+
+----
+Notes
+
+[^1]: The Washington Post suggested that 55 to 85 percent of attempted illegal border crossings are unsuccessful, up from 35 to 70 in the previous decade.
+[^2]: According to the U.S. Customs and Border Protection website, there were 3,700 agents working throughout Tucson as of 2022.
+[^3]: The number of arrests in 2021 was almost as many as the previous four years combined, Tucson Weekly reports.
+[^4]: Ibid.
+[^5]: Chief Patrol Agent John Modlin said during this hearing, titled "On the Front Lives of the Border Crisis: A Hearing with Chief Patrol Agents," that he does not "have the correct adjective to describe what's going on [at the border]." 
+[^6]: As of April 2023, Tucson has the most use-of-force incidents by Border Patrol agents, followed by El Paso with 89 incidents.
+[^7]: Essentially, use of force must be in proportion to the totality of circumstances. The type and amount of force should not out-weigh the present threat.
+[^8]: Ibid.
+[^9]: Though legal standards against use-of-force incidents is set to be raised, incidents will likely not stop. As sociologist Irene Vega states, most Border Patrol agents' perceptions of reasonable force are shaped by politics and culture.
+[^10]: Ibid.
+[^11]: According to Khmara, the U.S. Customs and Border Protection Office of Professional Responsibility is investigating the man's death.
+[^12]: Many Border Patrol agents have been investigated by other agents without official jurisdiction, leading to dishonest accounts.
